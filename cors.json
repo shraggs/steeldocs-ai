@@ -1,0 +1,10 @@
+[
+  {
+    "origin": [
+      "https://steeldocs-ai.firebaseapp.com",
+      "https://steeldocs-ai.web.app"
+    ],
+    "method": ["GET", "POST", "PUT"],
+    "maxAgeSeconds": 3600
+  }
+]
