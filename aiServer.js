@@ -1,36 +1,32 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+import OpenAI from "openai";
 import fetch from "node-fetch";
 import pdf from "pdf-parse";
-import { OpenAI } from "openai";
+
+dotenv.config();
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 app.post("/api/analyze", async (req, res) => {
   const { prompt, pdfUrl } = req.body;
-
   if (!prompt || !pdfUrl) {
     return res.status(400).json({ result: "Missing prompt or pdfUrl." });
   }
 
   try {
-    // Step 1: Fetch the PDF from Firebase Storage
+    // Step 1: Download the PDF from the provided URL
     const response = await fetch(pdfUrl);
-    if (!response.ok) throw new Error("Failed to fetch the PDF file.");
-    const arrayBuffer = await response.arrayBuffer();
-    const pdfBuffer = Buffer.from(arrayBuffer);
+    const pdfBuffer = await response.arrayBuffer();
 
     // Step 2: Extract text from the PDF
-    const data = await pdf(pdfBuffer);
-    const extractedText = data.text;
+    const extractedText = (await pdf(Buffer.from(pdfBuffer))).text;
 
     // Step 3: Call OpenAI with the prompt + extracted text
     const aiResponse = await openai.chat.completions.create({
@@ -48,11 +44,10 @@ app.post("/api/analyze", async (req, res) => {
       temperature: 0.3,
     });
 
-    const result = aiResponse.choices[0]?.message?.content?.trim() || "No response.";
+    const result = aiResponse.choices?.[0]?.message?.content?.trim() || "No response.";
     res.json({ result });
-
   } catch (err) {
-    console.error("AI analysis error:", err);
+    console.error("AI server error:", err);
     res.status(500).json({ result: "AI server error." });
   }
 });
