@@ -34,7 +34,7 @@ app.post("/api/analyze", async (req, res) => {
 
     // Step 3: Call OpenAI with the prompt + extracted text
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o", // or "gpt-3.5-turbo" for cost-saving
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
