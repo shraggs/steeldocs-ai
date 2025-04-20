@@ -24,7 +24,8 @@ app.post("/api/analyze", async (req, res) => {
     // Step 1: Download the PDF from the provided URL
     const response = await fetch(pdfUrl);
     const pdfBuffer = await response.arrayBuffer();
-
+    const data = await pdfParse(Buffer.from(pdfBuffer));
+    
     // Step 2: Extract text from the PDF
     const extractedText = (await pdf(Buffer.from(pdfBuffer))).text;
 
