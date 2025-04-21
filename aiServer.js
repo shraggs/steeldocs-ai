@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 import * as pdfjsLib from "pdfjs-dist";
 
 const app = express();
@@ -10,10 +10,9 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 // Helper function to extract text using pdfjs-dist
 async function extractTextFromPdf(url) {
