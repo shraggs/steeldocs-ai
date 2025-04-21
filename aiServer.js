@@ -1,18 +1,39 @@
 import express from "express";
 import cors from "cors";
-import OpenAI from "openai";
 import fetch from "node-fetch";
-import pdfParse from "pdf-parse";
-// Triggering redeploy
+import { Configuration, OpenAIApi } from "openai";
+import * as pdfjsLib from "pdfjs-dist";
+
 const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({
+const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
+const openai = new OpenAIApi(configuration);
+
+// Helper function to extract text using pdfjs-dist
+async function extractTextFromPdf(url) {
+  const response = await fetch(url);
+  const pdfBuffer = await response.arrayBuffer();
+
+  const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
+  const pdf = await loadingTask.promise;
+
+  let fullText = "";
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map((item) => item.str).join(" ");
+    fullText += pageText + "\n";
+  }
+
+  return fullText;
+}
 
 app.post("/api/analyze", async (req, res) => {
   const { prompt, pdfUrl } = req.body;
@@ -22,14 +43,9 @@ app.post("/api/analyze", async (req, res) => {
   }
 
   try {
-    // ✅ Download the PDF from URL and extract text
-    const response = await fetch(pdfUrl);
-    const pdfBuffer = await response.arrayBuffer();
-    const data = await pdfParse(Buffer.from(pdfBuffer)); // ✅ This is the correct usage
-    const extractedText = data.text;
+    const extractedText = await extractTextFromPdf(pdfUrl);
 
-    // ✅ Send to OpenAI
-    const aiResponse = await openai.chat.completions.create({
+    const aiResponse = await openai.createChatCompletion({
       model: "gpt-4o",
       messages: [
         {
@@ -44,10 +60,10 @@ app.post("/api/analyze", async (req, res) => {
       temperature: 0.3,
     });
 
-    const result = aiResponse.choices[0]?.message?.content?.trim() || "No response.";
+    const result = aiResponse.data.choices[0]?.message?.content?.trim() || "No response.";
     res.json({ result });
-  } catch (err) {
-    console.error("AI server error:", err.message);
+  } catch (error) {
+    console.error("AI server error:", error);
     res.status(500).json({ result: "Error processing prompt." });
   }
 });
