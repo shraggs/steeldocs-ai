@@ -3,7 +3,7 @@ import cors from "cors";
 import OpenAI from "openai";
 import fetch from "node-fetch";
 import pdfParse from "pdf-parse";
-
+// Triggering redeploy
 const app = express();
 const port = process.env.PORT || 5000;
 
