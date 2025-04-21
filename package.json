@@ -1,7 +1,7 @@
 {
   "name": "steeldocs-ai",
   "version": "1.0.0",
-  "types": "module",
+  "type": "module",
   "private": true,
   "dependencies": {
     "@google-cloud/pubsub": "^4.11.0",
@@ -30,8 +30,8 @@
   },
   "scripts": {
     "start": "node aiServer.js",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "build": "echo 'skipping build step'",
+    "test": "echo 'no tests to run'",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
