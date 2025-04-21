@@ -1,23 +1,12 @@
 [
     {
-      "id": "plans-division5",
+      "id": "division-5",
       "name": "Find Division 5 Notes",
-      "type": "Plans",
-      "description": "Search construction drawings for Division 5 and light gauge metals.",
       "defaultPrompt": "Search the construction drawings for references to Division 5, steel erection scope notes, and any mention of light gauge metals. List sheet names and page numbers where each is found."
     },
     {
-      "id": "specs-division5",
-      "name": "Extract Division 5 Specs",
-      "type": "Specs",
-      "description": "Extract erection notes, welding requirements, and bolt standards.",
+      "id": "specbook-division-5",
+      "name": "Extract Division 5 from Specs",
       "defaultPrompt": "Review this spec book and return all relevant information under Division 5. Also extract erection notes, welding requirements, bolt standards, field painting, and tolerances."
-    },
-    {
-      "id": "bidform-steel",
-      "name": "Steel Scope from Bid Form",
-      "type": "Bid Form",
-      "description": "Pull all items related to steel erection, alternates, and exclusions.",
-      "defaultPrompt": "Review the bid form and identify all line items or sections that mention steel erection, labor-only scopes, schedule deadlines, alternates, or exclusions."
     }
   ]

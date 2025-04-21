@@ -12,10 +12,12 @@ const Upload = () => {
   const [fileLabels, setFileLabels] = useState([]);
   const [downloadURLs, setDownloadURLs] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedPrompt, setSelectedPrompt] = useState("");
+  const [customPrompt, setCustomPrompt] = useState("");
   const [aiResponse, setAIResponse] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
@@ -56,30 +58,41 @@ const Upload = () => {
   };
 
   const handleRunAI = async () => {
-    if (!selectedPrompt || downloadURLs.length === 0) return;
+    const promptToUse = customPrompt || selectedPrompt;
+    if (!promptToUse || downloadURLs.length === 0) return;
+
+    setLoading(true);
+    setError(null);
+    setAIResponse("");
 
     try {
-      const res = await fetch("https://your-cloud-server-url.com/api/callai", {
+      const res = await fetch("https://steeldocs-ai.onrender.com/api/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: selectedPrompt,
+          prompt: promptToUse,
           pdfUrl: downloadURLs[activeIndex].url,
         }),
       });
 
       const data = await res.json();
-      setAIResponse(data.result);
+      if (data.result) {
+        setAIResponse(data.result);
+      } else {
+        setError("No result returned.");
+      }
     } catch (error) {
       console.error("AI error:", error);
-      alert("Error processing prompt.");
+      setError("Error processing prompt.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container mt-5">
+    <div className="container-fluid mt-5">
       <h2 className="text-center mb-4">Upload & View PDFs</h2>
       <div className="d-flex justify-content-center mb-3">
         <input
@@ -117,7 +130,7 @@ const Upload = () => {
           <div className="mb-3">
             <label>Select AI Prompt:</label>
             <select
-              className="form-select"
+              className="form-select mb-2"
               value={selectedPrompt}
               onChange={(e) => setSelectedPrompt(e.target.value)}
             >
@@ -128,27 +141,44 @@ const Upload = () => {
                 </option>
               ))}
             </select>
-            <button className="btn btn-success mt-2" onClick={handleRunAI}>
+
+            <input
+              type="text"
+              className="form-control mb-2"
+              placeholder="What would you like to ask?"
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+            />
+
+            <button className="btn btn-success mt-1" onClick={handleRunAI}>
               Run AI
             </button>
           </div>
 
-          <div className="pdf-preview">
-            <h5>{downloadURLs[activeIndex].label}</h5>
-            <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
-              <Viewer
-                fileUrl={downloadURLs[activeIndex].url}
-                plugins={[defaultLayoutPluginInstance]}
-              />
-            </Worker>
-          </div>
-
+          {loading && <div className="alert alert-warning mt-3">Running AI...</div>}
           {aiResponse && (
             <div className="alert alert-info mt-4">
               <h5>AI Response:</h5>
               <pre>{aiResponse}</pre>
             </div>
           )}
+          {error && (
+            <div className="alert alert-danger mt-3">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+
+          <div className="pdf-wrapper mt-3">
+            <h5>{downloadURLs[activeIndex].label}</h5>
+            <div style={{ height: "800px" }}>
+              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+                <Viewer
+                  fileUrl={downloadURLs[activeIndex].url}
+                  plugins={[defaultLayoutPluginInstance]}
+                />
+              </Worker>
+            </div>
+          </div>
         </div>
       )}
     </div>

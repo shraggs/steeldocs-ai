@@ -13,26 +13,30 @@
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+/* Override React PDF Viewer styles to force full-width viewer */
+.pdf-wrapper {
+  width: 100vw;
+  padding: 0 10px;
+  overflow-x: auto;
 }
 
-.App-link {
-  color: #61dafb;
+.rpv-core__viewer {
+  width: 100% !important;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.rpv-core__inner-pages {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.rpv-core__page-layer {
+  width: 100% !important;
+}
+
+.rpv-core__page {
+  width: 100% !important;
+  max-width: none !important;
+  flex-grow: 1 !important;
 }

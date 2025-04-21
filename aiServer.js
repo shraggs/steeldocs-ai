@@ -1,19 +1,21 @@
 import express from "express";
 import cors from "cors";
+import { Configuration, OpenAIApi } from "openai";
 import fetch from "node-fetch";
 import pdfParse from "pdf-parse";
-import { config } from "dotenv";
-import OpenAI from "openai";
+import dotenv from "dotenv";
 
-config(); // load env vars from .env file
-
+dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
 app.post("/api/analyze", async (req, res) => {
   const { prompt, pdfUrl } = req.body;
@@ -23,12 +25,16 @@ app.post("/api/analyze", async (req, res) => {
   }
 
   try {
+    // Step 1: Fetch the PDF from Firebase Storage
     const response = await fetch(pdfUrl);
     const pdfBuffer = await response.arrayBuffer();
-    const data = await pdfParse(Buffer.from(pdfBuffer));
-    const extractedText = data.text;
 
-    const aiResponse = await openai.chat.completions.create({
+    // Step 2: Parse PDF text
+    const parsed = await pdfParse(Buffer.from(pdfBuffer));
+    const extractedText = parsed.text;
+
+    // Step 3: Send to GPT-4o
+    const aiResponse = await openai.createChatCompletion({
       model: "gpt-4o",
       messages: [
         {
@@ -43,11 +49,11 @@ app.post("/api/analyze", async (req, res) => {
       temperature: 0.3,
     });
 
-    const result = aiResponse.choices[0]?.message?.content?.trim() || "No response.";
+    const result = aiResponse.data.choices[0]?.message?.content?.trim() || "No response.";
     res.json({ result });
   } catch (err) {
     console.error("AI server error:", err);
-    res.status(500).json({ result: "AI server error." });
+    res.status(500).json({ result: "Error processing prompt." });
   }
 });
 
