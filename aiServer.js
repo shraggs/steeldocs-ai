@@ -22,13 +22,13 @@ app.post("/api/analyze", async (req, res) => {
   }
 
   try {
-    // Fetch the PDF and extract text
+    // ✅ Download the PDF from URL and extract text
     const response = await fetch(pdfUrl);
     const pdfBuffer = await response.arrayBuffer();
-    const data = await pdfParse(Buffer.from(pdfBuffer));
+    const data = await pdfParse(Buffer.from(pdfBuffer)); // ✅ This is the correct usage
     const extractedText = data.text;
 
-    // Call OpenAI with the prompt + extracted text
+    // ✅ Send to OpenAI
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -47,7 +47,7 @@ app.post("/api/analyze", async (req, res) => {
     const result = aiResponse.choices[0]?.message?.content?.trim() || "No response.";
     res.json({ result });
   } catch (err) {
-    console.error("AI server error:", err);
+    console.error("AI server error:", err.message);
     res.status(500).json({ result: "Error processing prompt." });
   }
 });
