@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.js";
 import OpenAI from "openai";
-import * as pdfjsLib from "pdfjs-dist";
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -10,16 +10,18 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({
+const configuration = {
   apiKey: process.env.OPENAI_API_KEY,
-});
+};
+
+const openai = new OpenAI(configuration);
 
 // Helper function to extract text using pdfjs-dist
 async function extractTextFromPdf(url) {
   const response = await fetch(url);
   const pdfBuffer = await response.arrayBuffer();
 
-  const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
+  const loadingTask = getDocument({ data: pdfBuffer });
   const pdf = await loadingTask.promise;
 
   let fullText = "";
@@ -44,7 +46,7 @@ app.post("/api/analyze", async (req, res) => {
   try {
     const extractedText = await extractTextFromPdf(pdfUrl);
 
-    const aiResponse = await openai.createChatCompletion({
+    const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
@@ -59,10 +61,10 @@ app.post("/api/analyze", async (req, res) => {
       temperature: 0.3,
     });
 
-    const result = aiResponse.data.choices[0]?.message?.content?.trim() || "No response.";
+    const result = aiResponse.choices[0]?.message?.content?.trim() || "No response.";
     res.json({ result });
-  } catch (error) {
-    console.error("AI server error:", error);
+  } catch (err) {
+    console.error("AI server error:", err);
     res.status(500).json({ result: "Error processing prompt." });
   }
 });
