@@ -1,63 +1,54 @@
-import express from 'express';
-import cors from 'cors';
-import fetch from 'node-fetch';
-import OpenAI from 'openai';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+// === aiServer.js ===
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
+import { getDocument } from "pdfjs-dist";
+import { OpenAI } from "openai";
+
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({ origin: "https://steeldocs-ai.firebaseapp.com" }));
 app.use(express.json());
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Helper function to extract text from PDF using pdfjs-dist
 async function extractTextFromPdf(url) {
   const response = await fetch(url);
   const pdfBuffer = await response.arrayBuffer();
-
-  const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
+  const loadingTask = getDocument({ data: pdfBuffer });
   const pdf = await loadingTask.promise;
 
-  let fullText = '';
-
+  let fullText = "";
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const strings = content.items.map(item => item.str);
-    fullText += strings.join(' ') + '\n';
+    const pageText = content.items.map((item) => item.str).join(" ");
+    fullText += pageText + "\n";
   }
-
   return fullText;
 }
 
-// POST route to handle AI prompt and PDF analysis
-app.post('/analyze-pdf', async (req, res) => {
+app.post("/analyze", async (req, res) => {
   try {
     const { pdfUrl, prompt } = req.body;
-
-    if (!pdfUrl || !prompt) {
-      return res.status(400).json({ error: 'Missing pdfUrl or prompt' });
-    }
-
-    const pdfText = await extractTextFromPdf(pdfUrl);
+    const text = await extractTextFromPdf(pdfUrl);
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: "gpt-4",
       messages: [
-        { role: 'system', content: 'You are a helpful assistant that analyzes PDF documents.' },
-        { role: 'user', content: `${prompt}\n\nPDF Content:\n${pdfText}` },
-      ],
-      temperature: 0.5,
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: `${prompt}\n\n${text}` }
+      ]
     });
 
     res.json({ response: completion.choices[0].message.content });
   } catch (error) {
-    console.error('AI server error:', error);
-    res.status(500).json({ error: 'Error processing prompt.' });
+    console.error("AI error:", error);
+    res.status(500).json({ error: "Error processing prompt" });
   }
 });
 

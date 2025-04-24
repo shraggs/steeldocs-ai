@@ -1,22 +1,22 @@
-export const callAI = async (prompt, text) => {
+import axios from 'axios';
+
+const callAI = async (pdfUrl, userPrompt) => {
   try {
-    const response = await fetch("https://steeldocs-ai.onrender.com/api/analyze", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt, text }),
+    const response = await axios.post('https://steeldocs-ai.onrender.com/analyze', {
+      pdfUrl,
+      prompt: userPrompt,
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "AI server error");
+    if (response.data && response.data.result) {
+      return response.data.result;
+    } else {
+      console.error('Unexpected response structure:', response);
+      return 'An error occurred: Unexpected response format.';
     }
-
-    return data.result;
-  } catch (err) {
-    console.error("Error calling AI backend:", err);
-    throw err;
+  } catch (error) {
+    console.error('Error calling AI:', error);
+    return 'An error occurred while processing your prompt.';
   }
 };
+
+export default callAI;
