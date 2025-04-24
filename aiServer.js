@@ -1,14 +1,14 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
-import { Configuration, OpenAIApi } from "openai";
 
-// Use CommonJS-compatible require for pdfjs-dist
-import * as pdfjsLib from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.js?worker";
+// Dynamically import OpenAI SDK
+const { Configuration, OpenAIApi } = await import("openai");
 
-// Set the workerSrc manually
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Import pdfjs-dist using CommonJS-compatible workaround
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.js";
+import worker from "pdfjs-dist/legacy/build/pdf.worker.js?worker";
+pdfjsLib.GlobalWorkerOptions.workerSrc = worker;
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -21,21 +21,20 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-// PDF text extraction helper
+// Helper function to extract text using pdfjs-dist
 async function extractTextFromPdf(url) {
   const response = await fetch(url);
   const pdfBuffer = await response.arrayBuffer();
-
   const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
   const pdf = await loadingTask.promise;
 
   let fullText = "";
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
+  const numPages = pdf.numPages;
+  for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
     const content = await page.getTextContent();
-    const strings = content.items.map((item) => item.str);
-    fullText += strings.join(" ") + "\n";
+    const pageText = content.items.map(item => item.str).join(" ");
+    fullText += pageText + "\n";
   }
 
   return fullText;
@@ -66,7 +65,7 @@ app.post("/api/analyze", async (req, res) => {
       temperature: 0.3,
     });
 
-    const result = aiResponse.data.choices[0]?.message?.content?.trim() || "No response.";
+    const result = aiResponse.choices[0]?.message?.content?.trim() || "No response.";
     res.json({ result });
   } catch (err) {
     console.error("AI server error:", err);
