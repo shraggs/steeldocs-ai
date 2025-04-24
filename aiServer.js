@@ -1,7 +1,8 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
-const { OpenAI } = require('openai');
+import express from 'express';
+import cors from 'cors';
+import fetch from 'node-fetch';
+import { Configuration, OpenAIAPI } from 'openai';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -9,32 +10,32 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Set up OpenAI
-const openai = new OpenAI({
+// Initialize OpenAI
+const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
+const openai = new OpenAIAPI(configuration);
 
-// PDF text extraction using pdfjs-dist (CommonJS style)
+// Helper function to extract text from PDF using pdfjs-dist
 async function extractTextFromPdf(url) {
   const response = await fetch(url);
-  const pdfBuffer = await response.arrayBuffer();
+  const arrayBuffer = await response.arrayBuffer();
 
-  const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-  const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
+  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
   const pdf = await loadingTask.promise;
 
   let fullText = '';
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const strings = content.items.map(item => item.str);
-    fullText += strings.join(' ') + '\n';
+    const strings = content.items.map(item => item.str).join(' ');
+    fullText += strings + '\n';
   }
 
   return fullText;
 }
 
-// API endpoint for analyzing PDFs with AI
+// API route for prompt + PDF analysis
 app.post('/api/analyze', async (req, res) => {
   const { prompt, pdfUrl } = req.body;
 
@@ -48,27 +49,20 @@ app.post('/api/analyze', async (req, res) => {
     const aiResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that analyzes PDF content.',
-        },
-        {
-          role: 'user',
-          content: `${prompt}\n\nPDF Content:\n${extractedText}`,
-        },
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: `${prompt}\n\n${extractedText}` },
       ],
-      temperature: 0.7,
     });
 
-    const result = aiResponse.choices[0].message.content;
-    res.json({ result });
+    const reply = aiResponse.choices?.[0]?.message?.content || 'No response.';
+    res.json({ result: reply });
   } catch (error) {
-    console.error('Error during analysis:', error.message);
+    console.error('Error processing AI request:', error.message);
     res.status(500).json({ result: 'Error processing prompt.' });
   }
 });
 
-// Start the server
+// Launch server
 app.listen(port, () => {
-  console.log(`AI Server running on port ${port}`);
+  console.log(`AI server is running on port ${port}`);
 });
