@@ -1,8 +1,14 @@
 import express from "express";
 import cors from "cors";
-import OpenAI from "openai";
 import fetch from "node-fetch";
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.js";
+import { Configuration, OpenAIApi } from "openai";
+
+// Use CommonJS-compatible require for pdfjs-dist
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.js?worker";
+
+// Set the workerSrc manually
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -10,11 +16,12 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({
+const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
+const openai = new OpenAIApi(configuration);
 
-// Helper function to extract text using pdfjs-dist
+// PDF text extraction helper
 async function extractTextFromPdf(url) {
   const response = await fetch(url);
   const pdfBuffer = await response.arrayBuffer();
@@ -23,8 +30,9 @@ async function extractTextFromPdf(url) {
   const pdf = await loadingTask.promise;
 
   let fullText = "";
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum);
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const strings = content.items.map((item) => item.str);
     fullText += strings.join(" ") + "\n";
@@ -43,7 +51,7 @@ app.post("/api/analyze", async (req, res) => {
   try {
     const extractedText = await extractTextFromPdf(pdfUrl);
 
-    const aiResponse = await openai.chat.completions.create({
+    const aiResponse = await openai.createChatCompletion({
       model: "gpt-4o",
       messages: [
         {
@@ -58,7 +66,7 @@ app.post("/api/analyze", async (req, res) => {
       temperature: 0.3,
     });
 
-    const result = aiResponse.choices[0]?.message?.content?.trim() || "No response.";
+    const result = aiResponse.data.choices[0]?.message?.content?.trim() || "No response.";
     res.json({ result });
   } catch (err) {
     console.error("AI server error:", err);
