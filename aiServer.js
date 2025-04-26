@@ -39,8 +39,8 @@ async function extractTextFromPdf(url) {
   return text;
 }
 
-// Endpoint for handling AI calls
-app.post('/api/call-ai', async (req, res) => {
+// Corrected Endpoint for handling AI calls
+app.post('/process-pdf', async (req, res) => {
   const { pdfUrl, prompt } = req.body;
 
   try {
@@ -52,10 +52,10 @@ app.post('/api/call-ai', async (req, res) => {
         { role: 'system', content: 'You are a helpful assistant that extracts relevant information from documents.' },
         { role: 'user', content: `${prompt}\n\nPDF content:\n${extractedText}` }
       ],
-      temperature: 0.7
+      temperature: 0.2  // Set temperature lower for more factual answers, per your summary
     });
 
-    res.json({ response: completion.choices[0].message.content });
+    res.json({ result: completion.choices[0].message.content });
   } catch (error) {
     console.error('AI error:', error);
     res.status(500).json({ error: 'Error processing prompt.' });

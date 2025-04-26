@@ -66,7 +66,7 @@ const Upload = () => {
     setAIResponse("");
 
     try {
-      const res = await fetch("https://steeldocs-ai.onrender.com/api/analyze", {
+      const res = await fetch("https://steeldocs-ai.onrender.com/process-pdf", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
